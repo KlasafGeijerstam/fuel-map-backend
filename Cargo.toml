@@ -1,0 +1,15 @@
+[package]
+name = "fuel_map_backend"
+version = "0.1.0"
+edition = "2021"
+authors = ["Klas af Geijerstam <klasafgeijerstam@gmail.com>"]
+
+[dependencies]
+actix-web = "4.0.1"
+tokio = { version = "1.17.0", features = ["full"] }
+sqlx = { version = "0.5.11", features = ["runtime-tokio-rustls", "postgres"] }
+clap = { version = "3.1.12", features = ["derive", "env"] }
+async-trait = "0.1.53"
+testcontainers = "0.13.0"
+log = "0.4.16"
+pretty_env_logger = "0.4.0"

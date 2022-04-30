@@ -1,0 +1,18 @@
+on:
+  - 'push'
+
+jobs:
+  lint-and-test:
+    runs-on: 'ubuntu-latest'
+    name: 'Lint and test'
+    container:
+      image: 'klasa/fuel-map-backend-base:latest'
+    steps:
+      - name: 'Checkout code'
+        uses: 'actions/checkout@v3'
+      - name: 'Check home'
+        run: 'echo $HOME'
+      - name: 'Check format with rustfmt'
+        run: 'cargo fmt --check'
+      - name: 'Test'
+        run: 'cargo test'
