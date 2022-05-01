@@ -10,8 +10,15 @@ jobs:
     steps:
       - name: 'Checkout code'
         uses: 'actions/checkout@v3'
-      - name: 'Check home'
-        run: 'echo $HOME'
+      - uses: 'actions/cache@v3'
+        with:
+          path: |
+            /root/.cargo/bin
+            /root/.cargo/registry/index/
+            /root/.cargo/registry/cache/
+            /root/.cargo/git/db/
+            target/
+          key: "${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}"
       - name: 'Check format with rustfmt'
         run: 'cargo fmt --check'
       - name: 'Test'
