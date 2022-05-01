@@ -3,7 +3,7 @@ ENV TZ=Europe/Stockholm
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update
 RUN apt upgrade -y
-RUN apt install -y postgresql-client curl gcc pkg-config libssl-dev
+RUN apt install -y postgresql-client curl gcc pkg-config libssl-dev gnupg2
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
 RUN sh rustup.sh -y
 ENV PATH=$PATH:/root/.cargo/bin
@@ -12,3 +12,4 @@ RUN curl --proto '=https' --tlsv1.2 -sSf 'https://download.docker.com/linux/ubun
 RUN dpkg -i docker-cli.deb
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
+RUN curl https://cli-assets.heroku.com/install-ubuntu.sh | sh

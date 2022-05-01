@@ -1,0 +1,8 @@
+FROM klasa/fuel-map-backend-base:latest
+RUN mkdir /app
+WORKDIR /app
+COPY target/release/fuel_map_backend .
+COPY migrations/ migrations/
+ENV DATABASE_URL=""
+ENV PORT=80
+CMD ["./fuel_map_backend"]

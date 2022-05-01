@@ -15,7 +15,7 @@ struct Arguments {
     bind_address: String,
 
     /// Port to listen for incoming connections on.
-    #[clap(short, long, default_value_t = 8080)]
+    #[clap(short, long, default_value_t = 8080, env("PORT"))]
     port: u16,
 
     /// Database connection string

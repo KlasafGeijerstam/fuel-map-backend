@@ -1,0 +1,49 @@
+name: 'Build and push Docker image'
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Lint and test']
+    branches: ['main']
+    types:
+      - 'completed'
+
+env:
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    name: 'Build and push Docker image'
+    container:
+      image: 'klasa/fuel-map-backend-base:latest'
+    steps:
+      - name: 'Checkout code'
+        uses: 'actions/checkout@v3'
+      - uses: 'actions/cache@v3'
+        with:
+          path: |
+            /root/.cargo/bin
+            /root/.cargo/registry/index/
+            /root/.cargo/registry/cache/
+            /root/.cargo/git/db/
+            target/
+          key: "${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}"
+      - name: 'Build application'
+        run: 'cargo build --release'
+      - name: 'Create Docker image'
+        run: 'docker build -t klasa/fuel-map-backend:latest -f Dockerfile.ci-cd .'
+      - name: 'Login to Docker Hub'
+        uses: 'docker/login-action@v1'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: 'Push image to Docker Hub'
+        run: 'docker push klasa/fuel-map-backend:latest'
+      - name: 'Tag image for Heroku'
+        run: 'docker tag klasa/fuel-map-backend:latest registry.heroku.com/fuel-map-backend/web'
+      - name: 'Login to Heroku container registry'
+        run: 'heroku container:login'
+      - name: 'Push to Heroku container registry'
+        run: 'docker push registry.heroku.com/fuel-map-backend/web'
+      - name: 'Deploy image to Heroku'
+        run: 'heroku container:release --app fuel-map-backend web'

@@ -1,2 +1,3 @@
 .posgres_data/
 target/
+!target/release/fuel_map_backend
