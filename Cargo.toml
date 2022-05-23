@@ -13,3 +13,10 @@ async-trait = "0.1.53"
 testcontainers = "0.13.0"
 log = "0.4.16"
 pretty_env_logger = "0.4.0"
+anyhow = "1.0.57"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
+
+[dev-dependencies]
+mockall = "0.11.1"
+factori = "1.1.0"

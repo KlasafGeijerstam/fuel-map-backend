@@ -1,11 +1,17 @@
-use actix_web::{App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
+use sqlx::PgPool;
+use std::sync::Arc;
 
+use anyhow::Result;
 use clap::Parser;
 use tokio;
 
-mod endpoints;
-mod infrastructure;
+mod endpoint;
+mod infra;
 mod repo;
+mod service;
+
+use infra::postgres::PostgresDatabaseRepository;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -24,12 +30,27 @@ struct Arguments {
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<()> {
     let args = Arguments::parse();
+
     println!("Listening on {}:{}", args.bind_address, args.port);
 
-    HttpServer::new(|| App::new().configure(endpoints::configure))
-        .bind((args.bind_address, args.port))?
-        .run()
-        .await
+    let db_pool = Arc::new(infra::postgres::create_pool(&args.database_url).await?);
+
+    HttpServer::new(move || {
+        App::new()
+            .wrap(middleware::NormalizePath::trim())
+            .configure(|cfg| configure_sites(db_pool.clone(), cfg))
+    })
+    .bind((args.bind_address, args.port))?
+    .run()
+    .await
+    .map_err(anyhow::Error::from)
+}
+
+fn configure_sites(pg_pool: Arc<PgPool>, cfg: &mut web::ServiceConfig) {
+    let site_service = service::SiteServiceImpl {
+        site_repo: PostgresDatabaseRepository { pool: pg_pool },
+    };
+    endpoint::configure(web::Data::new(site_service), cfg);
 }

@@ -1,7 +1,15 @@
+use crate::service::SiteService;
 use actix_web::{get, web, Responder};
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
+pub mod site;
+
+pub fn configure<S: 'static + SiteService>(
+    site_service: web::Data<S>,
+    cfg: &mut web::ServiceConfig,
+) {
+    cfg.app_data(site_service);
     cfg.service(index);
+    site::configure::<S>(cfg);
 }
 
 #[get("/{id}/{name}/")]

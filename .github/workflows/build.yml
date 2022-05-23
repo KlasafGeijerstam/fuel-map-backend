@@ -9,6 +9,7 @@ on:
 
 env:
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  DATABASE_URL: 'postgres://postgres:password@postgres/fuel_map'
 
 jobs:
   build:
@@ -16,6 +17,20 @@ jobs:
     name: 'Build and push Docker image'
     container:
       image: 'klasa/fuel-map-backend-base:latest'
+
+    services:
+      # sqlx needs a database to perform static checks on SQL
+      postgres:
+        image: 'postgres:14'
+        env:
+          POSTGRES_PASSWORD: 'password'
+          POSTGRES_DB: 'fuel_map'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: 'Checkout code'
         uses: 'actions/checkout@v3'
@@ -28,6 +43,8 @@ jobs:
             /root/.cargo/git/db/
             target/
           key: "${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}"
+      - name: 'Run migrations'
+        run: 'sqlx migrate run'
       - name: 'Build application'
         run: 'cargo build --release'
       - name: 'Create Docker image'

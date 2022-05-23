@@ -2,12 +2,27 @@ name: 'Lint and test'
 on:
   - 'push'
 
+env:
+  DATABASE_URL: 'postgres://postgres:password@postgres/fuel_map'
+
 jobs:
   lint-and-test:
     runs-on: 'ubuntu-latest'
     name: 'Lint and test'
     container:
       image: 'klasa/fuel-map-backend-base:latest'
+    services:
+      # sqlx needs a database to perform static checks on SQL
+      postgres:
+        image: 'postgres:14'
+        env:
+          POSTGRES_PASSWORD: 'password'
+          POSTGRES_DB: 'fuel_map'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: 'Checkout code'
         uses: 'actions/checkout@v3'
@@ -22,5 +37,7 @@ jobs:
           key: "${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}"
       - name: 'Check format with rustfmt'
         run: 'cargo fmt --check'
+      - name: 'Run migrations'
+        run: 'sqlx migrate run'
       - name: 'Test'
         run: 'cargo test'
