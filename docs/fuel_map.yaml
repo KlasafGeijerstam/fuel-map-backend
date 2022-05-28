@@ -1,0 +1,139 @@
+openapi: 3.1.0
+info:
+  title: fuel-map
+  version: '1.0'
+  description: Fuel map
+  summary: Fuel map API documentation
+  contact:
+    name: Klas
+    url: 'https://github.com/KlasafGeijerstam'
+servers:
+  - url: 'http://localhost:8080/api/v1'
+    description: Local dev
+paths:
+  /sites:
+    post:
+      summary: Create New site
+      operationId: post-site
+      description: Create a new site.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/New-Site'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+    parameters: []
+    get:
+      summary: ''
+      operationId: get-sites
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Site'
+      description: ''
+      tags:
+        - sites
+  '/sites/{id}':
+    parameters:
+      - schema:
+          type: number
+        name: id
+        in: path
+        description: ID of site
+        required: true
+    put:
+      summary: ''
+      operationId: put-sites
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+        '404':
+          description: Not Found
+      description: Updates a site
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/New-Site'
+      parameters: []
+      tags:
+        - sites
+    delete:
+      summary: ''
+      operationId: delete-site
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+        '404':
+          description: Not Found
+      description: Deletes a site
+components:
+  schemas:
+    Site:
+      type: object
+      title: Site
+      description: ''
+      examples:
+        - id: 142
+          address: Street 1
+          lat: '55'
+          lng: '56'
+      x-tags:
+        - site
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for site
+        address:
+          type: string
+        lat:
+          type: string
+        lng:
+          type: string
+      required:
+        - id
+        - address
+        - lat
+        - lng
+      readOnly: true
+    New-Site:
+      type: object
+      title: NewSite
+      description: A site without ID
+      examples:
+        - address: Street 1
+          lat: '55'
+          lng: '56'
+      x-tags:
+        - site
+      properties:
+        address:
+          type: string
+        lat:
+          type: string
+        lng:
+          type: string
+      required:
+        - address
+        - lat
+        - lng
+      readOnly: true
