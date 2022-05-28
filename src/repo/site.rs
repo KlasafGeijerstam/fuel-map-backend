@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-pub use model::{Site, SiteId};
+pub use model::{NewSite, Site, SiteId};
 
 #[cfg(test)]
 use mockall::automock;
@@ -10,8 +10,8 @@ use mockall::automock;
 pub trait SiteRepository {
     async fn all(&self) -> Result<Vec<Site>>;
     async fn delete(&self, id: SiteId) -> Result<Option<Site>>;
-    async fn create(&self, site: Site) -> Result<Site>;
-    async fn update(&self, id: SiteId, site: Site) -> Result<Site>;
+    async fn create(&self, site: NewSite) -> Result<Site>;
+    async fn update(&self, id: SiteId, site: NewSite) -> Result<Option<Site>>;
 }
 
 pub mod model {
@@ -20,23 +20,49 @@ pub mod model {
 
     pub type SiteId = i32;
 
-    #[derive(sqlx::FromRow, Serialize, Deserialize)]
+    #[derive(sqlx::FromRow, Serialize, Deserialize, Clone)]
     pub struct Site {
         pub id: SiteId,
         pub address: String,
         pub lat: String,
         pub lng: String,
     }
+
+    #[derive(Serialize, Deserialize, Clone)]
+    pub struct NewSite {
+        pub address: String,
+        pub lat: String,
+        pub lng: String,
+    }
+
+    impl NewSite {
+        pub fn to_site(self) -> Site {
+            Site {
+                id: 0,
+                address: self.address,
+                lat: self.lat,
+                lng: self.lng,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 pub mod factory {
-    use super::model::Site;
+    use super::model::{NewSite, Site};
     use factori::factori;
 
     factori!(Site, {
         default {
             id = 0,
+            address = "Address".into(),
+            lat = "59.0".into(),
+            lng = "58.0".into(),
+        }
+    });
+
+    factori!(NewSite, {
+        default {
             address = "Address".into(),
             lat = "59.0".into(),
             lng = "58.0".into(),

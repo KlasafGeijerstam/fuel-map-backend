@@ -1,10 +1,17 @@
-use crate::repo::site::{Site, SiteRepository};
-use anyhow::Result;
+pub use crate::repo::site::{NewSite, Site, SiteId, SiteRepository};
+use actix_web::{error::ErrorInternalServerError, Result};
 use async_trait::async_trait;
 
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
 #[async_trait]
 pub trait SiteService {
     async fn get_sites(&self) -> Result<Vec<Site>>;
+    async fn create_site(&self, new_site: NewSite) -> Result<Site>;
+    async fn update_site(&self, site_id: SiteId, site: NewSite) -> Result<Option<Site>>;
+    async fn delete_site(&self, site_id: SiteId) -> Result<Option<Site>>;
 }
 
 pub struct SiteServiceImpl<S: SiteRepository> {
@@ -17,7 +24,31 @@ where
     S: SiteRepository + Send + Sync,
 {
     async fn get_sites(&self) -> Result<Vec<Site>> {
-        self.site_repo.all().await
+        self.site_repo
+            .all()
+            .await
+            .map_err(|e| ErrorInternalServerError(e))
+    }
+
+    async fn create_site(&self, new_site: NewSite) -> Result<Site> {
+        self.site_repo
+            .create(new_site)
+            .await
+            .map_err(|e| ErrorInternalServerError(e))
+    }
+
+    async fn update_site(&self, site_id: SiteId, site: NewSite) -> Result<Option<Site>> {
+        self.site_repo
+            .update(site_id, site)
+            .await
+            .map_err(|e| ErrorInternalServerError(e))
+    }
+
+    async fn delete_site(&self, site_id: SiteId) -> Result<Option<Site>> {
+        self.site_repo
+            .delete(site_id)
+            .await
+            .map_err(|e| ErrorInternalServerError(e))
     }
 }
 

@@ -1,4 +1,5 @@
 use actix_web::{middleware, web, App, HttpServer};
+use pretty_env_logger;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -31,6 +32,7 @@ struct Arguments {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    pretty_env_logger::init();
     let args = Arguments::parse();
 
     println!("Listening on {}:{}", args.bind_address, args.port);
@@ -39,6 +41,7 @@ async fn main() -> Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::trim())
             .configure(|cfg| configure_sites(db_pool.clone(), cfg))
     })

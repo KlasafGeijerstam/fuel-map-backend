@@ -1,4 +1,4 @@
-use crate::repo::site::{Site, SiteId, SiteRepository};
+use crate::repo::site::{NewSite, Site, SiteId, SiteRepository};
 use anyhow::Result;
 use async_trait::async_trait;
 use sqlx;
@@ -25,7 +25,7 @@ impl SiteRepository for PostgresDatabaseRepository {
             .map_err(anyhow::Error::from)
     }
 
-    async fn create(&self, site: Site) -> Result<Site> {
+    async fn create(&self, site: NewSite) -> Result<Site> {
         sqlx::query_as!(
             Site,
             "
@@ -41,7 +41,7 @@ impl SiteRepository for PostgresDatabaseRepository {
         .map_err(anyhow::Error::from)
     }
 
-    async fn update(&self, id: SiteId, site: Site) -> Result<Site> {
+    async fn update(&self, id: SiteId, site: NewSite) -> Result<Option<Site>> {
         sqlx::query_as!(
             Site,
             "
@@ -53,7 +53,7 @@ impl SiteRepository for PostgresDatabaseRepository {
             site.lng,
             id,
         )
-        .fetch_one(&*self.pool)
+        .fetch_optional(&*self.pool)
         .await
         .map_err(anyhow::Error::from)
     }
@@ -75,9 +75,11 @@ impl PostgresDatabaseRepository {
 
 #[cfg(test)]
 mod tests {
+    use super::NewSite;
     use super::PostgresDatabaseRepository;
-    use super::Site;
     use super::SiteRepository;
+    use crate::repo::site::factory::*;
+    use factori::create;
     use sqlx::migrate::Migrator;
     use std::path::Path;
     use testcontainers::{clients, images::postgres, Container};
@@ -114,34 +116,21 @@ mod tests {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
 
-        let site = repo
-            .create(Site {
-                id: 0,
-                address: "Street 1".into(),
-                lat: "59".into(),
-                lng: "58".into(),
-            })
-            .await
-            .unwrap();
+        let new_site = create!(NewSite);
 
-        assert_eq!("Street 1", site.address);
-        assert_eq!("59", site.lat);
-        assert_eq!("58", site.lng);
+        let site = repo.create(new_site.clone()).await.unwrap();
+
+        assert_eq!(new_site.address, site.address);
+        assert_eq!(new_site.lat, site.lat);
+        assert_eq!(new_site.lng, site.lng);
     }
 
     #[actix_web::test]
     async fn test_get_sites() {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
-        for i in 0..3 {
-            repo.create(Site {
-                id: 0,
-                address: format!("Street {i}"),
-                lat: "50".into(),
-                lng: "51".into(),
-            })
-            .await
-            .unwrap();
+        for _ in 0..3 {
+            repo.create(create!(NewSite)).await.unwrap();
         }
 
         let sites = repo.all().await.unwrap();
@@ -152,15 +141,7 @@ mod tests {
     async fn test_delete_site() {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
-        let site = repo
-            .create(Site {
-                id: 0,
-                address: format!("Street 1"),
-                lat: "50".into(),
-                lng: "51".into(),
-            })
-            .await
-            .unwrap();
+        let site = repo.create(create!(NewSite)).await.unwrap();
 
         let deleted_site = repo.delete(site.id).await.unwrap().unwrap();
         assert_eq!(site.address, deleted_site.address);
@@ -172,15 +153,7 @@ mod tests {
     async fn test_delete_non_existing_site_returns_none() {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
-        let site = repo
-            .create(Site {
-                id: 0,
-                address: format!("Street 1"),
-                lat: "50".into(),
-                lng: "51".into(),
-            })
-            .await
-            .unwrap();
+        let site = repo.create(create!(NewSite)).await.unwrap();
 
         let deleted_site = repo.delete(site.id + 1).await.unwrap();
         assert!(deleted_site.is_none());
@@ -192,29 +165,24 @@ mod tests {
     async fn test_update_site() {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
-        let site = repo
-            .create(Site {
-                id: 0,
-                address: format!("Street 1"),
-                lat: "50".into(),
-                lng: "51".into(),
-            })
-            .await
-            .unwrap();
+        let site = repo.create(create!(NewSite)).await.unwrap();
 
         let updated_site = repo
             .update(
                 site.id,
-                Site {
-                    address: "New Street".into(),
-                    ..site
+                NewSite {
+                    address: "New Street".to_owned(),
+                    lat: site.lat.clone(),
+                    lng: site.lng.clone(),
                 },
             )
             .await
             .unwrap();
+        assert_eq!(true, updated_site.is_some());
+        let updated_site = updated_site.unwrap();
         assert_eq!("New Street", updated_site.address);
-        assert_eq!("50", updated_site.lat);
-        assert_eq!("51", updated_site.lng);
+        assert_eq!(site.lat, updated_site.lat);
+        assert_eq!(site.lng, updated_site.lng);
     }
 
     #[actix_web::test]
@@ -222,17 +190,7 @@ mod tests {
         let docker = get_docker();
         let (repo, _c) = setup_db(&docker).await;
 
-        let result = repo
-            .update(
-                0,
-                Site {
-                    id: 0,
-                    address: "New Street".into(),
-                    lat: "50".into(),
-                    lng: "51".into(),
-                },
-            )
-            .await;
-        assert_eq!(true, result.is_err());
+        let result = repo.update(0, create!(NewSite)).await;
+        assert_eq!(true, result.unwrap().is_none());
     }
 }
