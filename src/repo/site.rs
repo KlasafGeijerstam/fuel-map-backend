@@ -8,6 +8,7 @@ use mockall::automock;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait SiteRepository {
+    async fn get(&self, id: SiteId) -> Result<Option<Site>>;
     async fn all(&self) -> Result<Vec<Site>>;
     async fn delete(&self, id: SiteId) -> Result<Option<Site>>;
     async fn create(&self, site: NewSite) -> Result<Site>;
@@ -33,17 +34,6 @@ pub mod model {
         pub address: String,
         pub lat: String,
         pub lng: String,
-    }
-
-    impl NewSite {
-        pub fn to_site(self) -> Site {
-            Site {
-                id: 0,
-                address: self.address,
-                lat: self.lat,
-                lng: self.lng,
-            }
-        }
     }
 }
 

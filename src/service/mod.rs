@@ -8,6 +8,7 @@ use mockall::automock;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait SiteService {
+    async fn get_site(&self, site_id: SiteId) -> Result<Option<Site>>;
     async fn get_sites(&self) -> Result<Vec<Site>>;
     async fn create_site(&self, new_site: NewSite) -> Result<Site>;
     async fn update_site(&self, site_id: SiteId, site: NewSite) -> Result<Option<Site>>;
@@ -23,6 +24,13 @@ impl<S> SiteService for SiteServiceImpl<S>
 where
     S: SiteRepository + Send + Sync,
 {
+    async fn get_site(&self, site_id: SiteId) -> Result<Option<Site>> {
+        self.site_repo
+            .get(site_id)
+            .await
+            .map_err(|e| ErrorInternalServerError(e))
+    }
+
     async fn get_sites(&self) -> Result<Vec<Site>> {
         self.site_repo
             .all()

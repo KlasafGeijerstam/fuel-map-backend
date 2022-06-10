@@ -86,6 +86,17 @@ paths:
         '404':
           description: Not Found
       description: Deletes a site
+    get:
+      summary: ''
+      operationId: get-sites-id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+      description: Get a specific site
 components:
   schemas:
     Site:

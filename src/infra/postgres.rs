@@ -11,6 +11,13 @@ pub struct PostgresDatabaseRepository {
 
 #[async_trait]
 impl SiteRepository for PostgresDatabaseRepository {
+    async fn get(&self, id: SiteId) -> Result<Option<Site>> {
+        sqlx::query_as!(Site, "SELECT * FROM site WHERE id = $1", id)
+            .fetch_optional(&*self.pool)
+            .await
+            .map_err(anyhow::Error::from)
+    }
+
     async fn all(&self) -> Result<Vec<Site>> {
         sqlx::query_as!(Site, "SELECT * FROM site ")
             .fetch_all(&*self.pool)
@@ -63,6 +70,7 @@ pub async fn create_pool(pg_url: &str) -> Result<PgPool, sqlx::Error> {
     PgPool::connect(pg_url).await
 }
 
+#[cfg(test)]
 impl PostgresDatabaseRepository {
     pub async fn connect(pg_url: &str) -> Result<Self, sqlx::Error> {
         let pool = create_pool(pg_url).await?;
@@ -135,6 +143,27 @@ mod tests {
 
         let sites = repo.all().await.unwrap();
         assert_eq!(3, sites.len());
+    }
+
+    #[actix_web::test]
+    async fn test_get_site() {
+        let docker = get_docker();
+        let (repo, _c) = setup_db(&docker).await;
+        let site = repo.create(create!(NewSite)).await.unwrap();
+
+        let got_site = repo.get(site.id).await.unwrap().unwrap();
+        assert_eq!(site.id, got_site.id);
+        assert_eq!(site.address, got_site.address);
+        assert_eq!(site.lat, got_site.lat);
+        assert_eq!(site.lng, got_site.lng);
+    }
+
+    #[actix_web::test]
+    async fn test_get_non_existing_site() {
+        let docker = get_docker();
+        let (repo, _c) = setup_db(&docker).await;
+        let got_site = repo.get(0).await.unwrap();
+        assert!(got_site.is_none());
     }
 
     #[actix_web::test]

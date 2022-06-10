@@ -11,8 +11,20 @@ pub fn get_service<T: 'static + SiteService>() -> impl HttpServiceFactory + 'sta
         .service(
             web::scope("/{site_id}")
                 .route("", web::put().to(update_site::<T>))
-                .route("", web::delete().to(delete_site::<T>)),
+                .route("", web::delete().to(delete_site::<T>))
+                .route("", web::get().to(get_site::<T>)),
         )
+}
+
+async fn get_site<T: SiteService>(
+    site_id: web::Path<SiteId>,
+    site_repo: web::Data<T>,
+) -> Result<impl Responder> {
+    let site = site_repo
+        .get_site(*site_id)
+        .await?
+        .ok_or(NotFoundError::new())?;
+    Ok(Json(site))
 }
 
 async fn get_sites<T: SiteService>(site_repo: web::Data<T>) -> Result<impl Responder> {
