@@ -6,6 +6,7 @@ authors = ["Klas af Geijerstam <klasafgeijerstam@gmail.com>"]
 
 [dependencies]
 actix-web = "4.0.1"
+actix-cors = "0.6.1"
 tokio = { version = "1.17.0", features = ["full"] }
 sqlx = { version = "0.5.11", features = ["runtime-tokio-rustls", "postgres"] }
 clap = { version = "3.1.12", features = ["derive", "env"] }

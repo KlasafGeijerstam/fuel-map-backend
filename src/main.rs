@@ -1,4 +1,6 @@
+use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
+use log::info;
 use pretty_env_logger;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -28,6 +30,11 @@ struct Arguments {
     /// Database connection string
     #[clap(long, env("DATABASE_URL"))]
     database_url: String,
+
+    /// Comma separated list of hosts allowed to perform CORS requests.
+    /// Example "http://localhost:3000, https://google.com"
+    #[clap(long, env("CORS_HOSTS"))]
+    cors_hosts: Option<String>,
 }
 
 #[tokio::main]
@@ -40,7 +47,16 @@ async fn main() -> Result<()> {
     let db_pool = Arc::new(infra::postgres::create_pool(&args.database_url).await?);
 
     HttpServer::new(move || {
+        let mut cors = Cors::default().allow_any_header().allow_any_method();
+        if let Some(cors_hosts) = args.cors_hosts.clone() {
+            for host in cors_hosts.split(",") {
+                info!("Adding {host} to CORS whitelist");
+                cors = cors.allowed_origin(host.trim());
+            }
+        }
+
         App::new()
+            .wrap(cors)
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::trim())
             .configure(|cfg| configure_sites(db_pool.clone(), cfg))
